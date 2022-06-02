@@ -1,6 +1,35 @@
 import json
-from bs4 import BeautifulSoup
 import requests
+
+def getAllPol():
+    polAPI = "https://bff.capitoltrades.com/politicians?pageSize=50&page="
+    polAPIEnd = "&metric=countTrades&metric=countIssuers&metric=dateLastTraded&metric=volume"
+
+    pols = []
+    initialReq = requests.get(polAPI + "1" + polAPIEnd).text
+    pageNums = json.loads(initialReq)["meta"]["paging"]["totalPages"]
+    for i in range(int(pageNums)):
+        pageText = requests.get(polAPI + str(i+1) + polAPIEnd).text
+        data = list(json.loads(pageText)["data"])
+        politicians = {}
+
+        for polData in data:
+            ct = polData["stats"]["countTrades"]
+            if(ct > 20):
+                politicians.update({polData["firstName"] + " " + polData["lastName"] : polData["_politicianId"]})
+        
+
+        if(len(politicians) > 0):
+            for key in politicians.keys():
+                pols.append({key : politicians.get(key)})
+
+    return pols
+
+
+
+
+
+
 
 # Recieves input from user in format FirstName LastName for what US Senator they wish to get the ID for
 def formatSenName():
@@ -31,8 +60,10 @@ def getSenTrades(polID):
     trades = list(json.loads(req.text)["data"])
 
     for t in trades:
-        if t["txType"] == "sell":
-            print(t["pubDate"])
+        print(t["asset"], t["txType"])
 
 
-getSenTrades(getSenCode(["Mark", "Green"]))
+print(getAllPol())
+
+#Grading system for politicians that calculates performance of individual 
+#Who's consistently increasing their wealth vs who got lucky on big gamble 
