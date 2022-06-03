@@ -1,69 +1,73 @@
 import json
+from pydoc import pager
 import requests
 
-def getAllPol():
-    polAPI = "https://bff.capitoltrades.com/politicians?pageSize=50&page="
-    polAPIEnd = "&metric=countTrades&metric=countIssuers&metric=dateLastTraded&metric=volume"
+MIN_TRADES_WANTED = 20
+ALL_POLITICIANS_API = "https://bff.capitoltrades.com/politicians?pageSize=all&page=1&metric=countTrades&metric=countIssuers&metric=dateLastTraded&metric=volume"
+TRADE_API_START = "https://bff.capitoltrades.com/trades?page="
+TRADE_API_END = "&pageSize=100&politician="
+PAGE_START_NUM = "1"
 
+# Politician trades api = https://bff.capitoltrades.com/trades?politician=C001075&txDate=all
+
+def getPoliticians():
     pols = []
-    initialReq = requests.get(polAPI + "1" + polAPIEnd).text
-    pageNums = json.loads(initialReq)["meta"]["paging"]["totalPages"]
-    for i in range(int(pageNums)):
-        pageText = requests.get(polAPI + str(i+1) + polAPIEnd).text
-        data = list(json.loads(pageText)["data"])
-        politicians = {}
+    rawData = requests.get(ALL_POLITICIANS_API).text
+    data = json.loads(rawData)["data"]
 
-        for polData in data:
-            ct = polData["stats"]["countTrades"]
-            if(ct > 20):
-                politicians.update({polData["firstName"] + " " + polData["lastName"] : polData["_politicianId"]})
-        
-
-        if(len(politicians) > 0):
-            for key in politicians.keys():
-                pols.append({key : politicians.get(key)})
+    for polData in data:
+        countTrades = polData["stats"]["countTrades"]
+        if(countTrades > MIN_TRADES_WANTED):
+            fullName = polData["firstName"] + " " + polData["lastName"]
+            pols.append({"_politicianId" : polData["_politicianId"], "fullName" : fullName})    
 
     return pols
 
 
-
-
-
-
-
-# Recieves input from user in format FirstName LastName for what US Senator they wish to get the ID for
-def formatSenName():
-    name = input("Input the name of the politicion you would like to track: ").split(" ")
-    return name
-
-# Uses first and last name of senator to get their politicianId from capitol trades
-def getSenCode(senName):
-    senUrl = "https://bff.capitoltrades.com/politicians?page="
-    pNum = 1
-    urlEnder = "&pageSize=15"
-    
-    while pNum <= 15:
-        req = requests.get(senUrl + str(pNum) + urlEnder)
-        senList = list(json.loads(req.text)["data"])
-        
-        for sen in senList:
-            if (sen["firstName"] == senName[0] and sen["lastName"] == senName[1]):
-                return sen["_politicianId"]
-        
-        pNum += 1
-    
 # Uses politicianId in order to see what trades they have made
-def getSenTrades(polID):
-    tradesURL = "https://bff.capitoltrades.com/trades?politician=" + polID + "&txDate=all"
-
+def getPoliticianTrades(polID):
+    startNum = 1
+    tradesURL = tradeAPI(startNum, polID)
     req = requests.get(tradesURL)
-    trades = list(json.loads(req.text)["data"])
+    trades = json.loads(req.text)["data"]
+    meta = json.loads(req.text)["meta"]
+    pages = meta["paging"]["totalPages"]
 
-    for t in trades:
-        print(t["asset"], t["txType"])
+    if (pages > startNum):
+        allTrades = []
+        allTrades.append(trades)
+        startNum += 1
+
+        while startNum <= pages:
+            tradesURL = tradeAPI(startNum, polID)
+            req = requests.get(tradesURL)
+            trades = json.loads(req.text)["data"]
+            allTrades.append(trades)
+            startNum += 1
+        
+        return allTrades
+
+    
+    else:
+        return trades
+   
+
+def tradeAPI(pageNum, polID):
+    return TRADE_API_START + str(pageNum) + TRADE_API_END + polID
 
 
-print(getAllPol())
+# This method combines all valid politicians and their trades into an Array of Dictionaries using the results from getPoliticians and utilizing the getPoliticianTrades method
+def collectPoliticianTrades():
+    politicianTrades = []
+    politicians = getPoliticians()
+
+    print(getPoliticianTrades(politicians[0]["_politicianId"]))
+
+
+
+
+collectPoliticianTrades()
+
 
 #Grading system for politicians that calculates performance of individual 
 #Who's consistently increasing their wealth vs who got lucky on big gamble 
