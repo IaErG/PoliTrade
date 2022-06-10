@@ -5,17 +5,26 @@ MIN_TRADES_WANTED = 20
 ALL_POLITICIANS_API = "https://bff.capitoltrades.com/politicians?pageSize=all&page=1&metric=countTrades&metric=countIssuers&metric=dateLastTraded&metric=volume"
 TRADE_API_START = "https://bff.capitoltrades.com/trades?page="
 TRADE_API_END = "&pageSize=100&politician="
+API_BUY_SELL_FILTER = "&txType=buy&txType=sell"
 PAGE_START_NUM = "1"
 API_KEYWORDS = [
-        "data",
-        "stats",
-        "meta",
-        "countTrades",
-        "firstName",
-        "lastName",
-        "_politicianId",
-        "paging",
-        "totalPages"
+    "data",
+    "stats",
+    "meta",
+    "countTrades",
+    "firstName",
+    "lastName",
+    "_politicianId",
+    "paging",
+    "totalPages",
+    "txType"
+]
+
+TRANSACTION_TYPES = [
+    "buy",
+    "sell",
+    "exchange",
+    "receive"
 ]
 
 def getPoliticians():
@@ -60,7 +69,7 @@ def getPoliticianTrades(polID):
    
 
 def tradeAPI(pageNum, polID):
-    return TRADE_API_START + str(pageNum) + TRADE_API_END + polID
+    return TRADE_API_START + str(pageNum) + TRADE_API_END + polID + API_BUY_SELL_FILTER
 
 
 # This method combines all valid politicians and their trades into an Array of Dictionaries using the results from getPoliticians and utilizing the getPoliticianTrades method
@@ -75,6 +84,12 @@ def collectPoliticianTrades():
     return politicianTrades
 
 
+def rankPolitician(politician):
+    #Go through trades to see if politician made money or lost money based on their trades
+    politician["trades"]
+
+
+    return
 
 
 
