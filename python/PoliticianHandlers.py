@@ -2,12 +2,11 @@ import json
 import requests
 import time
 
+PAGE_START_NUM = 1
 MIN_TRADES_WANTED = 20
-ALL_POLITICIANS_API = "https://bff.capitoltrades.com/politicians?pageSize=all&page=1&metric=countTrades&metric=countIssuers&metric=dateLastTraded&metric=volume"
-TRADE_API_START = "https://bff.capitoltrades.com/trades?page="
-TRADE_API_END = "&pageSize=100&politician="
-API_BUY_SELL_FILTER = "&txType=buy&txType=sell"
-PAGE_START_NUM = "1"
+POLITICIANS_API = "https://bff.capitoltrades.com/politicians"
+TRADE_API = "https://bff.capitoltrades.com/trades"
+
 API_KEYWORDS = (
     "data",
     "stats",
@@ -28,9 +27,25 @@ TRANSACTION_TYPES = (
     "receive"
 )
 
+politician_API_params = {
+    "page" : PAGE_START_NUM,
+    "pageSize" : "all",
+    "metric" : ["countTrades", 
+                "countIssuers", 
+                "dateLastTraded", 
+                "volume"]
+}
+
+trade_API_params = {
+    "page" : PAGE_START_NUM,
+    "pageSize" : 100,
+    "politician" : None,
+    "txType" : ["buy", "sell"]
+}
+
 def getPoliticians():
     pols = []
-    rawData = requests.get(ALL_POLITICIANS_API).text
+    rawData = requests.get(POLITICIANS_API, politician_API_params).text
     data = json.loads(rawData)[API_KEYWORDS[0]]
 
     for polData in data:
@@ -44,36 +59,32 @@ def getPoliticians():
 
 # Uses politicianId in order to see what trades they have made
 def getPoliticianTrades(polID):
-    startNum = 1
-    tradesURL = tradeAPI(startNum, polID)
-    req = requests.get(tradesURL)
+    trade_API_params["politician"] = polID
+    req = requests.get(TRADE_API, trade_API_params)
     
     trades = filterData(json.loads(req.text)[API_KEYWORDS[0]])
     meta = json.loads(req.text)[API_KEYWORDS[2]]
     pages = meta[API_KEYWORDS[7]][API_KEYWORDS[8]]
 
-    if (pages > startNum):
+    if (pages > trade_API_params["page"]):
         allTrades = []
         allTrades.append(trades)
-        startNum += 1
+        trade_API_params["page"] += 1
 
-        while startNum <= pages:
-            tradesURL = tradeAPI(startNum, polID)
-            req = requests.get(tradesURL)
+        while trade_API_params["page"] <= pages:
+            req = requests.get(TRADE_API, trade_API_params)
             trades = json.loads(req.text)[API_KEYWORDS[0]]
             filtTrades = filterData(trades)
             allTrades.append(filtTrades)
-            startNum += 1
+            trade_API_params["page"] += 1
         
+
+        trade_API_params["page"] = PAGE_START_NUM
         return allTrades
     
     else:
         return trades
    
-
-def tradeAPI(pageNum, polID):
-    return "".join([TRADE_API_START, str(pageNum), TRADE_API_END, polID, API_BUY_SELL_FILTER])
-
 
 def filterData(data):
     results = []
@@ -112,10 +123,6 @@ def rankPolitician(politician):
 
 
     return
-
-
-def groupBuySell(trades):
-    buySellTrades = []
 
 
 

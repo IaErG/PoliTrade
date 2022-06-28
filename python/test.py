@@ -1,39 +1,36 @@
 import json
 from bs4 import BeautifulSoup
 import requests
+import random
 
-senUrl = "https://bff.capitoltrades.com/politicians?page="
-pNum = 1
-urlEnder = "&pageSize=15"
+senUrl = "https://bff.capitoltrades.com/politicians"
+politician_API_Params = {
+    "page" : 1,
+    "pageSize" : "all",
+    "metric" : ["countTrades", 
+                "countIssuers", 
+                "dateLastTraded", 
+                "volume"]
+}
 
-req = requests.get(senUrl + str(pNum) + urlEnder)
+req = requests.get(senUrl, politician_API_Params)
 senList = list(json.loads(req.text)["data"])
 
 for sen in senList:
-    print(sen["fullName"])
-
-
-#poli = input("Input the name of the politicion you would like to track: ")
-
-# req = requests.get("https://bff.capitoltrades.com/politicians?page=1&pageSize=15")
-
-# formReq = json.loads(req.text)
-
-# list = list(formReq["data"])
-
-# first = list[0]["party"]
-
-# print(first)
+    print(sen["fullName"], politician_API_Params["page"])
+    politician_API_Params["page"] = random.randint(0, 200)
 
 
 
 
 
-#https://www.capitoltrades.com/politicians?page=2
 
-# url = "https://www.capitoltrades.com/trades?politician="
+politician_API_Params = {
+    "pageSize" : "all",
+    "page" : 1,
+    "metric" : ["countTrades", 
+                "countIssuers", 
+                "dateLastTraded", 
+                "volume"]
+}
 
-# result = requests.get(url)
-# doc = BeautifulSoup(result.text, "html.parser")
-
-# print(doc.prettify())
